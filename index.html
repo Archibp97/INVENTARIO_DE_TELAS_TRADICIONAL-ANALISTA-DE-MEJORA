@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bodega de Telas · Registro y Reutilización</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #EDEAE1;
+    --surface: #FFFFFF;
+    --surface-2: #F5F2EA;
+    --ink: #24211D;
+    --ink-soft: #5C5850;
+    --border: #D3CBB8;
+    --border-strong: #B6AC92;
+    --rust: #A8442E;
+    --rust-dark: #8A3323;
+    --thread-green: #3C5D4E;
+    --thread-green-soft: #E4EBE5;
+    --rust-soft: #F5E2DC;
+    --shadow: 0 1px 2px rgba(36,33,29,0.06), 0 6px 16px rgba(36,33,29,0.06);
+    --radius: 3px;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Archivo', system-ui, sans-serif;
+    font-size:15px;
+    line-height:1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection{ background: var(--rust-soft); }
+  :focus-visible{ outline: 2px solid var(--rust); outline-offset: 2px; }
+
+  .app{
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 28px 20px 64px;
+  }
+
+  /* ---- Header ---- */
+  header.top{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    gap:16px;
+    flex-wrap:wrap;
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 18px;
+    margin-bottom: 22px;
+  }
+  .brand{ display:flex; align-items:baseline; gap:12px; }
+  .brand .mark{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    font-weight:600;
+    letter-spacing:.04em;
+    color: var(--surface);
+    background: var(--rust);
+    padding: 4px 8px;
+    border-radius: var(--radius);
+  }
+  h1{
+    font-size: 26px;
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .subtitle{
+    color: var(--ink-soft);
+    font-size: 13.5px;
+    margin-top: 4px;
+  }
+  .io-actions{ display:flex; gap:8px; }
+  .io-actions button{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    font-weight:600;
+    letter-spacing:.02em;
+    background: transparent;
+    color: var(--ink-soft);
+    border: 1px solid var(--border-strong);
+    padding: 7px 10px;
+    border-radius: var(--radius);
+    cursor:pointer;
+    transition: border-color .15s, color .15s;
+  }
+  .io-actions button:hover{ border-color: var(--ink); color: var(--ink); }
+
+  /* ---- Tabs ---- */
+  nav.tabs{
+    display:flex;
+    gap:10px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+  }
+  .tag-btn{
+    position:relative;
+    font-family:'Archivo', sans-serif;
+    font-weight:600;
+    font-size: 14px;
+    color: var(--ink-soft);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    padding: 10px 18px 10px 30px;
+    border-radius: var(--radius);
+    cursor:pointer;
+    transition: all .15s ease;
+  }
+  .tag-btn::before{
+    content:"";
+    position:absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 7px; height:7px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1.5px solid var(--border-strong);
+  }
+  .tag-btn:hover{ border-color: var(--border-strong); color: var(--ink); }
+  .tag-btn.active{
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+  }
+  .tag-btn.active::before{ background: var(--rust); border-color: var(--rust); }
+
+  /* ---- Panels ---- */
+  .panel{ display:none; }
+  .panel.active{ display:block; animation: fadein .18s ease; }
+  @keyframes fadein{ from{opacity:0; transform:translateY(3px);} to{opacity:1; transform:none;} }
+
+  .card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 24px;
+  }
+  .card + .card{ margin-top: 18px; }
+
+  .panel-title{
+    font-size: 12px;
+    font-family:'JetBrains Mono', monospace;
+    letter-spacing:.04em;
+    color: var(--rust);
+    font-weight:700;
+    margin: 0 0 4px;
+  }
+  .panel-desc{
+    color: var(--ink-soft);
+    font-size: 13.5px;
+    margin: 0 0 20px;
+  }
+
+  /* ---- Forms ---- */
+  .grid-form{
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+  .grid-form.g3{ grid-template-columns: repeat(3, 1fr); }
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field.span2{ grid-column: span 2; }
+  .field.span4{ grid-column: 1 / -1; }
+  label{ font-size: 12.5px; font-weight:600; color: var(--ink-soft); }
+  input[type=text], input[type=number]{
+    font-family:'Archivo', sans-serif;
+    font-size: 14.5px;
+    padding: 10px 11px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--ink);
+  }
+  input::placeholder{ color: #B3AC9C; }
+  .unit{ font-family:'JetBrains Mono', monospace; font-size:11.5px; color: var(--ink-soft); }
+  .lookup-preview{
+    font-size: 12.5px;
+    min-height: 16px;
+    margin-top: 2px;
+  }
+  .lookup-preview.found{ color: var(--thread-green); font-weight:600; }
+  .lookup-preview.notfound{ color: var(--rust); }
+
+  .btn{
+    font-family:'Archivo', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 11px 20px;
+    border-radius: var(--radius);
+    border: none;
+    cursor: pointer;
+    transition: background .15s, transform .05s;
+  }
+  .btn:active{ transform: translateY(1px); }
+  .btn-primary{ background: var(--rust); color: #fff; }
+  .btn-primary:hover{ background: var(--rust-dark); }
+  .btn-row{ margin-top: 18px; display:flex; align-items:center; gap:14px; }
+
+  .confirm-msg{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--thread-green);
+    background: var(--thread-green-soft);
+    border: 1px solid #C4D3C8;
+    padding: 8px 12px;
+    border-radius: var(--radius);
+    display:none;
+  }
+  .confirm-msg.show{ display:inline-block; }
+  .confirm-msg b{ font-weight:700; }
+
+  /* ---- Results (tab 2) ---- */
+  .result-list{ display:flex; flex-direction:column; gap:10px; margin-top: 18px; }
+  .result-row{
+    display:grid;
+    grid-template-columns: 74px 1.4fr 1fr 1fr 120px;
+    align-items:center;
+    gap:14px;
+    padding: 13px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface-2);
+  }
+  .result-row.fits{ border-left: 3px solid var(--thread-green); }
+  .result-row.nofits{ border-left: 3px solid var(--border-strong); opacity: .82; }
+  .result-code{
+    font-family:'JetBrains Mono', monospace;
+    font-weight:700;
+    font-size: 13px;
+  }
+  .result-name{ font-weight:600; }
+  .result-name small{ display:block; font-weight:400; color: var(--ink-soft); font-size:12px; margin-top:2px; }
+  .result-dims{ font-family:'JetBrains Mono', monospace; font-size: 13px; color: var(--ink-soft); }
+  .badge{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight:700;
+    letter-spacing:.02em;
+    padding: 4px 8px;
+    border-radius: var(--radius);
+    text-align:center;
+    white-space:nowrap;
+  }
+  .badge.ok{ background: var(--thread-green-soft); color: var(--thread-green); }
+  .badge.no{ background: #F1EDE2; color: var(--ink-soft); }
+
+  .use-cell{ display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
+  .use-btn{
+    font-family:'Archivo', sans-serif;
+    font-size: 12px;
+    font-weight:700;
+    color: #fff;
+    background: var(--thread-green);
+    border:none;
+    padding: 7px 12px;
+    border-radius: var(--radius);
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .use-btn:hover{ opacity:.9; }
+
+  .rank-num{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-soft);
+    margin-right:6px;
+  }
+
+  /* ---- Table (tab 3) ---- */
+  .search-bar{
+    display:flex;
+    gap:10px;
+    margin-bottom: 18px;
+  }
+  .search-bar input{ flex:1; }
+  table{ width:100%; border-collapse: collapse; font-size: 13.5px; }
+  thead th{
+    text-align:left;
+    font-family:'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-soft);
+    font-weight:600;
+    padding: 8px 10px;
+    border-bottom: 1.5px solid var(--ink);
+  }
+  tbody td{
+    padding: 10px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr:hover{ background: var(--surface-2); }
+  td.code{ font-family:'JetBrains Mono', monospace; font-weight:600; }
+  .del-btn{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight:600;
+    color: var(--rust);
+    background: var(--rust-soft);
+    border: none;
+    padding: 6px 10px;
+    border-radius: var(--radius);
+    cursor:pointer;
+  }
+  .del-btn:hover{ background: var(--rust); color:#fff; }
+
+  .empty-state{
+    text-align:center;
+    padding: 40px 20px;
+    color: var(--ink-soft);
+    font-size: 14px;
+  }
+  .empty-state .big{ font-family:'JetBrains Mono', monospace; font-size:12px; color: var(--rust); margin-bottom:8px; }
+
+  .count-pill{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    margin-left: 8px;
+  }
+
+  footer.foot{
+    margin-top: 32px;
+    font-size: 12px;
+    color: var(--ink-soft);
+    text-align:center;
+  }
+
+  @media (max-width: 720px){
+    .grid-form, .grid-form.g3{ grid-template-columns: 1fr 1fr; }
+    .field.span2, .field.span4{ grid-column: 1 / -1; }
+    .result-row{ grid-template-columns: 1fr; row-gap:6px; }
+    .search-bar{ flex-direction:column; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .panel.active{ animation: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="top">
+    <div class="brand">
+      <div>
+        <h1>Bodega de Telas</h1>
+        <div class="subtitle">Registro y reutilización de telas que salieron de producción</div>
+      </div>
+    </div>
+    <div class="io-actions">
+      <button id="btnExport" type="button">Exportar respaldo</button>
+      <button id="btnImportTrigger" type="button">Importar respaldo</button>
+      <input type="file" id="fileImport" accept="application/json" style="display:none">
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tag-btn active" data-tab="registrar">Registrar tela</button>
+    <button class="tag-btn" data-tab="buscar">Buscar coincidencias</button>
+    <button class="tag-btn" data-tab="inventario">Inventario</button>
+  </nav>
+
+  <!-- TAB 1: REGISTRAR -->
+  <section id="tab-registrar" class="panel active">
+    <div class="card">
+      <p class="panel-title">REGISTRO</p>
+      <p class="panel-desc">Ingresa la tela con su peso y dimensiones. Al guardar se le asigna automáticamente un código de ubicación único.</p>
+      <form id="formRegistrar">
+        <div class="grid-form">
+          <div class="field span2">
+            <label for="r-codigo">Código de tela</label>
+            <input type="text" id="r-codigo" list="dl-catalogo" placeholder="Ej. 21138" autocomplete="off" required>
+            <div class="lookup-preview" id="r-lookup-preview"></div>
+            <input type="text" id="r-nombre-manual" placeholder="Nombre de la tela (código no encontrado)" style="display:none; margin-top:4px;">
+          </div>
+          <div class="field">
+            <label for="r-peso">Peso <span class="unit">(kg)</span></label>
+            <input type="number" id="r-peso" min="0" step="0.01" placeholder="0.00" required>
+          </div>
+          <div class="field">
+            <label for="r-ancho">Ancho <span class="unit">(mm)</span></label>
+            <input type="number" id="r-ancho" min="0" step="0.1" placeholder="0.0" required>
+          </div>
+          <div class="field">
+            <label for="r-alto">Alto <span class="unit">(mm)</span></label>
+            <input type="number" id="r-alto" min="0" step="0.1" placeholder="0.0" required>
+          </div>
+          <div class="field span2">
+            <label for="r-notas">Notas <span class="unit">(opcional)</span></label>
+            <input type="text" id="r-notas" placeholder="Ej. defecto de tinte en el borde">
+          </div>
+        </div>
+        <div class="btn-row">
+          <button type="submit" class="btn btn-primary">Registrar tela</button>
+          <span class="confirm-msg" id="registroConfirm"></span>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <datalist id="dl-catalogo"></datalist>
+
+  <!-- TAB 2: BUSCAR COINCIDENCIAS -->
+  <section id="tab-buscar" class="panel">
+    <div class="card">
+      <p class="panel-title">COINCIDENCIAS</p>
+      <p class="panel-desc">Ingresa el item de tela y las dimensiones que necesitas. Se muestran todas las telas registradas, ordenadas de mejor a peor ajuste.</p>
+      <form id="formBuscar">
+        <div class="grid-form g3">
+          <div class="field">
+            <label for="b-codigo">Código de tela</label>
+            <input type="text" id="b-codigo" list="dl-catalogo" placeholder="Ej. 21138" autocomplete="off">
+            <div class="lookup-preview" id="b-lookup-preview"></div>
+          </div>
+          <div class="field">
+            <label for="b-ancho">Ancho necesario <span class="unit">(mm)</span></label>
+            <input type="number" id="b-ancho" min="0" step="0.1" placeholder="0.0" required>
+          </div>
+          <div class="field">
+            <label for="b-alto">Alto necesario <span class="unit">(mm)</span></label>
+            <input type="number" id="b-alto" min="0" step="0.1" placeholder="0.0" required>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button type="submit" class="btn btn-primary">Buscar</button>
+          <span class="count-pill" id="resultCount"></span>
+        </div>
+      </form>
+      <span class="confirm-msg" id="usoConfirm" style="margin-top:10px;"></span>
+      <div class="result-list" id="resultList"></div>
+    </div>
+  </section>
+
+  <!-- TAB 3: INVENTARIO -->
+  <section id="tab-inventario" class="panel">
+    <div class="card">
+      <p class="panel-title">INVENTARIO COMPLETO</p>
+      <p class="panel-desc">Busca por código o nombre de tela para revisar o eliminar un registro.</p>
+      <div class="search-bar">
+        <input type="text" id="inv-search" placeholder="Buscar por código o nombre de tela...">
+      </div>
+      <div id="invTableWrap"></div>
+    </div>
+  </section>
+
+  <footer class="foot">Los datos se guardan en este navegador. Usa "Exportar respaldo" para no perder tu inventario.</footer>
+</div>
+
+<script>
+(function(){
+  const STORAGE_KEY = 'telas_inventory_v1';
+  const COUNTER_KEY = 'telas_counter_v1';
+
+  // ---------- Catálogo código -> nombre de tela ----------
+  // Cargado desde TELAS_TRADICIONAL.xlsx. Si el código 21045 aparece
+  // dos veces en el archivo original (TALIS BLANCO / TALIS HUESO),
+  // aquí queda la primera coincidencia; corrige el Excel maestro para
+  // evitar la ambigüedad.
+  const CATALOGO_TELAS = [
+    {"codigo":"21138","nombre":"TELA LUMIA BLANCO"},{"codigo":"21137","nombre":"TELA LUMIA ARENA"},
+    {"codigo":"21139","nombre":"TELA LUMIA GRIS"},{"codigo":"21134","nombre":"TELA NAIA BLANCO"},
+    {"codigo":"21133","nombre":"TELA NAIA BEIGE"},{"codigo":"21135","nombre":"TELA NAIA LINO"},
+    {"codigo":"21136","nombre":"TELA NAIA GRIS"},{"codigo":"21050","nombre":"TELA ADELE BLANCO"},
+    {"codigo":"21051","nombre":"TELA ADELE CRUDO"},{"codigo":"21052","nombre":"TELA ADELE ARENA"},
+    {"codigo":"21053","nombre":"TELA LOUIS BLANCO"},{"codigo":"21054","nombre":"TELA LOUIS HUESO"},
+    {"codigo":"21055","nombre":"TELA LOUIS ARENA"},{"codigo":"21056","nombre":"TELA LOUIS GRIS"},
+    {"codigo":"21058","nombre":"TELA BENEDIT BLANCO"},{"codigo":"21059","nombre":"TELA BENEDIT ARENA"},
+    {"codigo":"21057","nombre":"TELA BENEDIT GRIS"},{"codigo":"21019","nombre":"TELA ARAI BLANCO"},
+    {"codigo":"21020","nombre":"TELA ARAI HUESO"},{"codigo":"21021","nombre":"TELA ARAI BEIGE"},
+    {"codigo":"21022","nombre":"TELA ARAI GRIS"},{"codigo":"21012","nombre":"TELA LARISA BLANCO"},
+    {"codigo":"21014","nombre":"TELA LARISA GRIS"},{"codigo":"21017","nombre":"TELA ELOISE BEIGE"},
+    {"codigo":"21018","nombre":"TELA ELOISE GRIS"},{"codigo":"21028","nombre":"TELA BRISE BLANCO"},
+    {"codigo":"21029","nombre":"TELA BRISE BEIGE"},{"codigo":"21030","nombre":"TELA BRISE GRIS"},
+    {"codigo":"21032","nombre":"TELA COLÍN HUESO"},{"codigo":"21033","nombre":"TELA COLÍN BEIGE"},
+    {"codigo":"21031","nombre":"TELA COLÍN GRIS"},{"codigo":"21036","nombre":"TELA IRINA GRIS"},
+    {"codigo":"21037","nombre":"TELA IRINA PIEDRA"},{"codigo":"21038","nombre":"TELA CIRO BLANCO"},
+    {"codigo":"21039","nombre":"TELA CIRO CRUDO"},{"codigo":"21040","nombre":"TELA CIRO GRIS"},
+    {"codigo":"21010","nombre":"TELA VELE LINE BLANCO"},{"codigo":"21011","nombre":"TELA VELE SANDA BEIGE"},
+    {"codigo":"21009","nombre":"TELA VELE CENDAL HUESO"},{"codigo":"21074","nombre":"TELA VELE TIZ BLANCO"},
+    {"codigo":"21140","nombre":"TELA VAREN BLANCO"},{"codigo":"21141","nombre":"TELA VAREN BEIGE"},
+    {"codigo":"21143","nombre":"TELA VAREN ARENA"},{"codigo":"21142","nombre":"TELA VAREN GRIS"},
+    {"codigo":"21062","nombre":"TELA TENBUS HUESO"},{"codigo":"21061","nombre":"TELA TENBUS ARENA"},
+    {"codigo":"21060","nombre":"TELA TENBUS PLATA"},{"codigo":"21063","nombre":"TELA TENBUS GRIS"},
+    {"codigo":"21064","nombre":"TELA BURAM BLANCO"},{"codigo":"21065","nombre":"TELA BURAM ARENA"},
+    {"codigo":"21066","nombre":"TELA BURAM BEIGE"},{"codigo":"21045","nombre":"TELA TALIS BLANCO"},
+    {"codigo":"21047","nombre":"TELA TALIS ARENA"},{"codigo":"21046","nombre":"TELA TALIS BEIGE"},
+    {"codigo":"21048","nombre":"TELA TALIS PIEDRA"},{"codigo":"21043","nombre":"TELA ROMMANSSI BLANCO"},
+    {"codigo":"21042","nombre":"TELA ROMMANSI HUESO"},{"codigo":"21041","nombre":"TELA ROMMANSI GRIS"},
+    {"codigo":"21156","nombre":"TELA KAORI BK BLANCA"},{"codigo":"21157","nombre":"TELA KAORI BK BEIGE"},
+    {"codigo":"21158","nombre":"TELA KAORI BK ARENA"},{"codigo":"21159","nombre":"TELA KAORI BK GRIS"},
+    {"codigo":"21070","nombre":"TELA DORCHA BK CRUDO"},{"codigo":"21068","nombre":"TELA DORCHA BK ARENA"},
+    {"codigo":"21069","nombre":"TELA DORCHA BK BEIGE"},{"codigo":"21067","nombre":"TELA DORCHA BK GRIS"},
+    {"codigo":"21023","nombre":"TELA DUNKEL BK TAUPE"},{"codigo":"21024","nombre":"TELA DUNKEL BK PIEDRA"},
+    {"codigo":"21025","nombre":"TELA TUMMA BK BLANCO"},{"codigo":"21174","nombre":"TELA DUNKEL BK MARFIL"},
+    {"codigo":"21027","nombre":"TELA TUMMA BK GRIS"}
+  ];
+  const CATALOGO_MAP = {};
+  CATALOGO_TELAS.forEach(t=>{ if(!(t.codigo in CATALOGO_MAP)) CATALOGO_MAP[t.codigo] = t.nombre; });
+
+  function buscarNombrePorCodigo(codigo){
+    return CATALOGO_MAP[codigo] || null;
+  }
+  function extraerCodigo(raw){
+    const m = (raw||'').trim().match(/^(\d+)/);
+    return m ? m[1] : (raw||'').trim();
+  }
+  // Rellena el <datalist> compartido por los campos de código
+  const dlCatalogo = document.getElementById('dl-catalogo');
+  if(dlCatalogo){
+    dlCatalogo.innerHTML = CATALOGO_TELAS
+      .map(t => '<option value="'+t.codigo+' — '+t.nombre+'">')
+      .join('');
+  }
+  // Conecta un input de código con su vista previa de nombre (y opcionalmente un input manual de respaldo)
+  function wireCodigoLookup(inputId, previewId, manualId){
+    const input = document.getElementById(inputId);
+    const preview = document.getElementById(previewId);
+    const manual = manualId ? document.getElementById(manualId) : null;
+    if(!input || !preview) return;
+    function update(){
+      const raw = input.value;
+      if(!raw.trim()){
+        preview.textContent = '';
+        preview.className = 'lookup-preview';
+        if(manual) manual.style.display = 'none';
+        return;
+      }
+      const codigo = extraerCodigo(raw);
+      const nombre = buscarNombrePorCodigo(codigo);
+      if(nombre){
+        preview.textContent = '→ ' + nombre;
+        preview.className = 'lookup-preview found';
+        if(manual) manual.style.display = 'none';
+      } else {
+        preview.textContent = 'Código no encontrado en el catálogo';
+        preview.className = 'lookup-preview notfound';
+        if(manual) manual.style.display = 'block';
+      }
+    }
+    input.addEventListener('input', update);
+    input.addEventListener('change', update);
+  }
+  wireCodigoLookup('r-codigo', 'r-lookup-preview', 'r-nombre-manual');
+  wireCodigoLookup('b-codigo', 'b-lookup-preview', null);
+
+  // ---------- Data layer ----------
+  function loadInventory(){
+    try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+    catch(e){ return []; }
+  }
+  function saveInventory(arr){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+  }
+  function nextCode(inv){
+    let counter = parseInt(localStorage.getItem(COUNTER_KEY) || '0', 10);
+    const existingCodes = new Set(inv.map(t => t.codigo));
+    let code;
+    do{
+      counter++;
+      code = 'T-' + String(counter).padStart(3, '0');
+    } while(existingCodes.has(code));
+    localStorage.setItem(COUNTER_KEY, String(counter));
+    return code;
+  }
+  function fmtDate(iso){
+    const d = new Date(iso);
+    return d.toLocaleDateString('es-CO', { day:'2-digit', month:'2-digit', year:'numeric' });
+  }
+  function fmtNum(n){
+    return Number(n).toLocaleString('es-CO', { maximumFractionDigits: 2 });
+  }
+
+  // ---------- Tabs ----------
+  const tabBtns = document.querySelectorAll('.tag-btn');
+  const panels = document.querySelectorAll('.panel');
+  tabBtns.forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      tabBtns.forEach(b=>b.classList.remove('active'));
+      panels.forEach(p=>p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+      if(btn.dataset.tab === 'inventario') renderInventoryTable();
+    });
+  });
+
+  // ---------- Tab 1: Registrar ----------
+  const formRegistrar = document.getElementById('formRegistrar');
+  const registroConfirm = document.getElementById('registroConfirm');
+  formRegistrar.addEventListener('submit', function(e){
+    e.preventDefault();
+    const rawCodigo = document.getElementById('r-codigo').value;
+    const codigoTela = extraerCodigo(rawCodigo);
+    const nombreManual = document.getElementById('r-nombre-manual').value.trim();
+    const nombreTela = buscarNombrePorCodigo(codigoTela) || nombreManual;
+    const peso = parseFloat(document.getElementById('r-peso').value);
+    const ancho = parseFloat(document.getElementById('r-ancho').value);
+    const alto = parseFloat(document.getElementById('r-alto').value);
+    const notas = document.getElementById('r-notas').value.trim();
+    if(!codigoTela || !nombreTela || isNaN(peso) || isNaN(ancho) || isNaN(alto)){
+      if(codigoTela && !nombreTela){
+        document.getElementById('r-nombre-manual').style.display = 'block';
+        document.getElementById('r-nombre-manual').focus();
+      }
+      return;
+    }
+
+    const inv = loadInventory();
+    const codigo = nextCode(inv);
+    const record = {
+      id: 'id_' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
+      codigo, codigoTela, nombreTela, peso, ancho, alto, notas,
+      fecha: new Date().toISOString()
+    };
+    inv.push(record);
+    saveInventory(inv);
+
+    registroConfirm.innerHTML = 'Registrado con ubicación <b>' + codigo + '</b>';
+    registroConfirm.classList.add('show');
+    formRegistrar.reset();
+    document.getElementById('r-lookup-preview').textContent = '';
+    document.getElementById('r-nombre-manual').style.display = 'none';
+    setTimeout(()=> registroConfirm.classList.remove('show'), 4000);
+  });
+
+  // ---------- Tab 2: Buscar coincidencias ----------
+  const formBuscar = document.getElementById('formBuscar');
+  const resultList = document.getElementById('resultList');
+  const resultCount = document.getElementById('resultCount');
+
+  function nameScore(codigoQ, t){
+    if(!codigoQ) return 1;
+    if((t.codigoTela||'') === codigoQ) return 2;
+    return 0;
+  }
+
+  function computeMatches(codigoQ, anchoQ, altoQ){
+    const inv = loadInventory();
+    return inv.map(t=>{
+      const fits = t.ancho >= anchoQ && t.alto >= altoQ;
+      const ns = nameScore(codigoQ, t);
+      let waste = null, deficit = null;
+      if(fits){
+        waste = (t.ancho * t.alto) - (anchoQ * altoQ);
+      } else {
+        deficit = Math.max(0, anchoQ - t.ancho) + Math.max(0, altoQ - t.alto);
+      }
+      const score = (fits ? 100000 : 0) + ns*1000 - (fits ? waste : deficit);
+      return { ...t, fits, ns, waste, deficit, score };
+    }).sort((a,b)=> b.score - a.score);
+  }
+
+  function nameLabel(ns, codigoQ){
+    if(!codigoQ) return '';
+    if(ns === 2) return 'Mismo código de tela';
+    return 'Tela distinta';
+  }
+
+  const usoConfirm = document.getElementById('usoConfirm');
+
+  function performSearch(){
+    const rawCodigo = document.getElementById('b-codigo').value;
+    const codigoQ = extraerCodigo(rawCodigo);
+    const anchoQ = parseFloat(document.getElementById('b-ancho').value);
+    const altoQ = parseFloat(document.getElementById('b-alto').value);
+    if(isNaN(anchoQ) || isNaN(altoQ)) return;
+
+    const matches = computeMatches(codigoQ, anchoQ, altoQ);
+    resultList.innerHTML = '';
+
+    if(matches.length === 0){
+      resultList.innerHTML = '<div class="empty-state"><div class="big">SIN REGISTROS</div>Aún no hay telas registradas. Ve a la pestaña "Registrar tela" para agregar la primera.</div>';
+      resultCount.textContent = '';
+      return;
+    }
+
+    resultCount.textContent = matches.length + ' resultado(s)';
+    matches.forEach((m, i)=>{
+      const row = document.createElement('div');
+      row.className = 'result-row ' + (m.fits ? 'fits' : 'nofits');
+      const dimsInfo = m.fits
+        ? 'Sobra ' + fmtNum(Math.max(0,m.ancho-anchoQ)) + ' x ' + fmtNum(Math.max(0,m.alto-altoQ)) + ' mm'
+        : 'Faltan ' + fmtNum(m.deficit) + ' mm en total';
+      const label = nameLabel(m.ns, codigoQ);
+      const useBtn = m.fits ? '<button class="use-btn" data-id="'+m.id+'">Usar</button>' : '';
+      row.innerHTML =
+        '<div class="result-code"><span class="rank-num">#'+(i+1)+'</span>'+m.codigo+'</div>' +
+        '<div class="result-name">'+escapeHtml(m.nombreTela||m.tela||'')+' <span class="unit">('+escapeHtml(m.codigoTela||'—')+')</span>' +
+          (label ? '<small>'+label+'</small>' : '') + '</div>' +
+        '<div class="result-dims">'+fmtNum(m.ancho)+' x '+fmtNum(m.alto)+' mm · '+fmtNum(m.peso)+' kg</div>' +
+        '<div class="result-dims">'+dimsInfo+'</div>' +
+        '<div class="use-cell"><div class="badge '+(m.fits?'ok':'no')+'">'+(m.fits?'✓ CABE':'✕ NO CABE')+'</div>'+useBtn+'</div>';
+      resultList.appendChild(row);
+    });
+
+    resultList.querySelectorAll('.use-btn').forEach(btn=>{
+      btn.addEventListener('click', function(){
+        const id = btn.dataset.id;
+        const inv = loadInventory();
+        const rec = inv.find(t=>t.id === id);
+        if(!rec) return;
+        if(confirm('¿Usar la tela '+rec.codigo+' ('+(rec.nombreTela||rec.tela)+')? Se sacará del inventario y quedará libre esa ubicación.')){
+          saveInventory(inv.filter(t=>t.id !== id));
+          usoConfirm.innerHTML = 'Tela usada. Retírala de la ubicación <b>'+rec.codigo+'</b> — ese espacio ya quedó disponible.';
+          usoConfirm.classList.add('show');
+          setTimeout(()=> usoConfirm.classList.remove('show'), 6000);
+          performSearch();
+        }
+      });
+    });
+  }
+
+  formBuscar.addEventListener('submit', function(e){
+    e.preventDefault();
+    performSearch();
+  });
+
+  // ---------- Tab 3: Inventario ----------
+  const invSearch = document.getElementById('inv-search');
+  const invTableWrap = document.getElementById('invTableWrap');
+
+  function renderInventoryTable(){
+    const filter = (invSearch.value || '').toLowerCase().trim();
+    const inv = loadInventory().slice().sort((a,b)=> a.codigo.localeCompare(b.codigo, undefined, {numeric:true}));
+    const filtered = inv.filter(t =>
+      t.codigo.toLowerCase().includes(filter) ||
+      (t.codigoTela||'').toLowerCase().includes(filter) ||
+      (t.nombreTela||t.tela||'').toLowerCase().includes(filter)
+    );
+
+    if(inv.length === 0){
+      invTableWrap.innerHTML = '<div class="empty-state"><div class="big">INVENTARIO VACÍO</div>Registra tu primera tela en la pestaña "Registrar tela".</div>';
+      return;
+    }
+    if(filtered.length === 0){
+      invTableWrap.innerHTML = '<div class="empty-state"><div class="big">SIN COINCIDENCIAS</div>Ningún registro coincide con "'+escapeHtml(invSearch.value)+'".</div>';
+      return;
+    }
+
+    let html = '<table><thead><tr>' +
+      '<th>Ubicación</th><th>Cód. tela</th><th>Tela</th><th>Peso</th><th>Dimensiones</th><th>Fecha</th><th>Notas</th><th></th>' +
+      '</tr></thead><tbody>';
+    filtered.forEach(t=>{
+      html += '<tr>' +
+        '<td class="code">'+t.codigo+'</td>' +
+        '<td class="code">'+escapeHtml(t.codigoTela||'—')+'</td>' +
+        '<td>'+escapeHtml(t.nombreTela||t.tela||'')+'</td>' +
+        '<td>'+fmtNum(t.peso)+' kg</td>' +
+        '<td>'+fmtNum(t.ancho)+' x '+fmtNum(t.alto)+' mm</td>' +
+        '<td>'+fmtDate(t.fecha)+'</td>' +
+        '<td>'+escapeHtml(t.notas || '—')+'</td>' +
+        '<td><button class="del-btn" data-id="'+t.id+'">Eliminar</button></td>' +
+        '</tr>';
+    });
+    html += '</tbody></table>';
+    invTableWrap.innerHTML = html;
+
+    invTableWrap.querySelectorAll('.del-btn').forEach(btn=>{
+      btn.addEventListener('click', function(){
+        const id = btn.dataset.id;
+        const inv = loadInventory();
+        const rec = inv.find(t=>t.id === id);
+        if(!rec) return;
+        if(confirm('¿Eliminar el registro '+rec.codigo+' ('+(rec.nombreTela||rec.tela)+')? Esta acción no se puede deshacer.')){
+          saveInventory(inv.filter(t=>t.id !== id));
+          renderInventoryTable();
+        }
+      });
+    });
+  }
+  invSearch.addEventListener('input', renderInventoryTable);
+
+  // ---------- Export / Import ----------
+  document.getElementById('btnExport').addEventListener('click', function(){
+    const data = {
+      inventory: loadInventory(),
+      counter: localStorage.getItem(COUNTER_KEY) || '0',
+      exportedAt: new Date().toISOString()
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'bodega-telas-respaldo-' + new Date().toISOString().slice(0,10) + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('btnImportTrigger').addEventListener('click', function(){
+    document.getElementById('fileImport').click();
+  });
+  document.getElementById('fileImport').addEventListener('change', function(e){
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(evt){
+      try{
+        const data = JSON.parse(evt.target.result);
+        if(!Array.isArray(data.inventory)) throw new Error('Formato inválido');
+        if(confirm('Esto reemplazará los '+loadInventory().length+' registros actuales por los '+data.inventory.length+' del archivo. ¿Continuar?')){
+          saveInventory(data.inventory);
+          if(data.counter) localStorage.setItem(COUNTER_KEY, String(data.counter));
+          renderInventoryTable();
+          alert('Respaldo importado correctamente.');
+        }
+      }catch(err){
+        alert('No se pudo leer el archivo. Verifica que sea un respaldo exportado desde este mismo sistema.');
+      }
+      e.target.value = '';
+    };
+    reader.readAsText(file);
+  });
+
+  // ---------- Utils ----------
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+  }
+
+  // Initial render
+  renderInventoryTable();
+})();
+</script>
+</body>
+</html>
