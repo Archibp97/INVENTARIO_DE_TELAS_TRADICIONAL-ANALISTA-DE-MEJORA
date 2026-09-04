@@ -325,6 +325,64 @@
     margin-left: 8px;
   }
 
+  /* ---- Login ---- */
+  .login-screen{
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding: 20px;
+    z-index: 50;
+  }
+  .login-card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 32px 28px;
+    max-width: 340px;
+    width:100%;
+    text-align:center;
+  }
+  .login-card .mark{
+    display:inline-block;
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.04em;
+    color: var(--surface);
+    background: var(--rust);
+    padding: 4px 10px;
+    border-radius: var(--radius);
+    margin-bottom: 14px;
+  }
+  .login-card h2{ margin: 0 0 6px; font-size: 20px; }
+  .login-card p{ color: var(--ink-soft); font-size: 13px; margin: 0 0 18px; }
+  .login-card input[type=password]{
+    width:100%;
+    font-family:'Archivo', sans-serif;
+    font-size: 15px;
+    padding: 11px 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    margin-bottom: 12px;
+  }
+  .login-card .btn{ width:100%; }
+  .login-error{
+    color: var(--rust);
+    font-size: 12.5px;
+    margin-top: 10px;
+    min-height: 16px;
+  }
+  .logout-btn{ font-family:'JetBrains Mono', monospace; }
+  .sync-note{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-soft);
+  }
+
   footer.foot{
     margin-top: 32px;
     font-size: 12px;
@@ -344,7 +402,22 @@
 </style>
 </head>
 <body>
-<div class="app">
+
+<!-- LOGIN -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <span class="mark">BODEGA</span>
+    <h2>Bodega de Telas</h2>
+    <p>Ingresa la contraseña del equipo para entrar al inventario.</p>
+    <form id="formLogin">
+      <input type="password" id="login-password" placeholder="Contraseña" required autofocus>
+      <button type="submit" class="btn btn-primary">Entrar</button>
+    </form>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<div class="app" id="appRoot" style="display:none;">
 
   <header class="top">
     <div class="brand">
@@ -354,9 +427,11 @@
       </div>
     </div>
     <div class="io-actions">
+      <span class="sync-note" id="syncNote">Sincronizado con Supabase</span>
       <button id="btnExport" type="button">Exportar respaldo</button>
       <button id="btnImportTrigger" type="button">Importar respaldo</button>
       <input type="file" id="fileImport" accept="application/json" style="display:none">
+      <button id="btnLogout" type="button" class="logout-btn">Salir</button>
     </div>
   </header>
 
@@ -449,13 +524,26 @@
     </div>
   </section>
 
-  <footer class="foot">Los datos se guardan en este navegador. Usa "Exportar respaldo" para no perder tu inventario.</footer>
+  <footer class="foot">Los datos se guardan en Supabase y se comparten con todo el equipo que tenga la contraseña.</footer>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (function(){
-  const STORAGE_KEY = 'telas_inventory_v1';
-  const COUNTER_KEY = 'telas_counter_v1';
+
+  // ======================================================================
+  // CONFIGURACIÓN DE SUPABASE — reemplaza estos 3 valores antes de usar.
+  // URL y ANON_KEY: Project Settings > API en tu proyecto de Supabase.
+  // LOGIN_EMAIL: el correo del usuario "equipo" que creas en
+  // Authentication > Users (ver instrucciones que te di aparte). El
+  // equipo de bodega nunca ve este correo, solo escribe la contraseña.
+  // ======================================================================
+  const SUPABASE_URL = 'https://TU-PROYECTO.supabase.co';
+  const SUPABASE_ANON_KEY = 'TU-ANON-KEY-PUBLICA';
+  const LOGIN_EMAIL = 'equipo@bodega-telas.local';
+
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const TABLE = 'telas_inventario';
 
   // ---------- Catálogo código -> nombre de tela ----------
   // Cargado desde TELAS_TRADICIONAL.xlsx. Si el código 21045 aparece
@@ -549,25 +637,47 @@
   wireCodigoLookup('r-codigo', 'r-lookup-preview', 'r-nombre-manual');
   wireCodigoLookup('b-codigo', 'b-lookup-preview', null);
 
-  // ---------- Data layer ----------
-  function loadInventory(){
-    try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
-    catch(e){ return []; }
+  // ---------- Data layer (Supabase) ----------
+  function rowToRecord(row){
+    return {
+      id: row.id,
+      codigo: row.codigo_ubicacion,
+      codigoTela: row.codigo_tela,
+      nombreTela: row.nombre_tela,
+      peso: row.peso,
+      ancho: row.ancho,
+      alto: row.alto,
+      notas: row.notas,
+      fecha: row.fecha
+    };
   }
-  function saveInventory(arr){
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+
+  async function loadInventory(){
+    const { data, error } = await sb.from(TABLE).select('*').order('fecha', { ascending: false });
+    if(error){ alert('No se pudo cargar el inventario desde Supabase: ' + error.message); return []; }
+    return data.map(rowToRecord);
   }
-  function nextCode(inv){
-    let counter = parseInt(localStorage.getItem(COUNTER_KEY) || '0', 10);
-    const existingCodes = new Set(inv.map(t => t.codigo));
-    let code;
-    do{
-      counter++;
-      code = 'T-' + String(counter).padStart(3, '0');
-    } while(existingCodes.has(code));
-    localStorage.setItem(COUNTER_KEY, String(counter));
-    return code;
+
+  async function insertRecord(codigoTela, nombreTela, peso, ancho, alto, notas){
+    const { data: codeData, error: codeErr } = await sb.rpc('siguiente_ubicacion');
+    if(codeErr) throw new Error('No se pudo generar la ubicación: ' + codeErr.message);
+    const codigo = codeData;
+    const { error } = await sb.from(TABLE).insert({
+      codigo_ubicacion: codigo,
+      codigo_tela: codigoTela,
+      nombre_tela: nombreTela,
+      peso, ancho, alto,
+      notas: notas || null
+    });
+    if(error) throw new Error('No se pudo guardar el registro: ' + error.message);
+    return codigo;
   }
+
+  async function deleteRecord(id){
+    const { error } = await sb.from(TABLE).delete().eq('id', id);
+    if(error) throw new Error('No se pudo eliminar el registro: ' + error.message);
+  }
+
   function fmtDate(iso){
     const d = new Date(iso);
     return d.toLocaleDateString('es-CO', { day:'2-digit', month:'2-digit', year:'numeric' });
@@ -575,6 +685,47 @@
   function fmtNum(n){
     return Number(n).toLocaleString('es-CO', { maximumFractionDigits: 2 });
   }
+
+  // ---------- Login / sesión ----------
+  const loginScreen = document.getElementById('loginScreen');
+  const appRoot = document.getElementById('appRoot');
+  const formLogin = document.getElementById('formLogin');
+  const loginError = document.getElementById('loginError');
+
+  function showApp(){
+    loginScreen.style.display = 'none';
+    appRoot.style.display = 'block';
+    renderInventoryTable();
+  }
+  function showLogin(msg){
+    loginScreen.style.display = 'flex';
+    appRoot.style.display = 'none';
+    loginError.textContent = msg || '';
+  }
+
+  formLogin.addEventListener('submit', async function(e){
+    e.preventDefault();
+    const password = document.getElementById('login-password').value;
+    loginError.textContent = 'Entrando...';
+    const { error } = await sb.auth.signInWithPassword({ email: LOGIN_EMAIL, password });
+    if(error){
+      loginError.textContent = 'Contraseña incorrecta. Intenta de nuevo.';
+      return;
+    }
+    document.getElementById('login-password').value = '';
+    showApp();
+  });
+
+  document.getElementById('btnLogout').addEventListener('click', async function(){
+    await sb.auth.signOut();
+    showLogin();
+  });
+
+  async function checkSession(){
+    const { data: { session } } = await sb.auth.getSession();
+    if(session) showApp(); else showLogin();
+  }
+  checkSession();
 
   // ---------- Tabs ----------
   const tabBtns = document.querySelectorAll('.tag-btn');
@@ -592,7 +743,7 @@
   // ---------- Tab 1: Registrar ----------
   const formRegistrar = document.getElementById('formRegistrar');
   const registroConfirm = document.getElementById('registroConfirm');
-  formRegistrar.addEventListener('submit', function(e){
+  formRegistrar.addEventListener('submit', async function(e){
     e.preventDefault();
     const rawCodigo = document.getElementById('r-codigo').value;
     const codigoTela = extraerCodigo(rawCodigo);
@@ -610,22 +761,21 @@
       return;
     }
 
-    const inv = loadInventory();
-    const codigo = nextCode(inv);
-    const record = {
-      id: 'id_' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
-      codigo, codigoTela, nombreTela, peso, ancho, alto, notas,
-      fecha: new Date().toISOString()
-    };
-    inv.push(record);
-    saveInventory(inv);
-
-    registroConfirm.innerHTML = 'Registrado con ubicación <b>' + codigo + '</b>';
-    registroConfirm.classList.add('show');
-    formRegistrar.reset();
-    document.getElementById('r-lookup-preview').textContent = '';
-    document.getElementById('r-nombre-manual').style.display = 'none';
-    setTimeout(()=> registroConfirm.classList.remove('show'), 4000);
+    const submitBtn = formRegistrar.querySelector('button[type=submit]');
+    submitBtn.disabled = true;
+    try{
+      const codigo = await insertRecord(codigoTela, nombreTela, peso, ancho, alto, notas);
+      registroConfirm.innerHTML = 'Registrado con ubicación <b>' + codigo + '</b>';
+      registroConfirm.classList.add('show');
+      formRegistrar.reset();
+      document.getElementById('r-lookup-preview').textContent = '';
+      document.getElementById('r-nombre-manual').style.display = 'none';
+      setTimeout(()=> registroConfirm.classList.remove('show'), 4000);
+    }catch(err){
+      alert(err.message);
+    }finally{
+      submitBtn.disabled = false;
+    }
   });
 
   // ---------- Tab 2: Buscar coincidencias ----------
@@ -639,8 +789,8 @@
     return 0;
   }
 
-  function computeMatches(codigoQ, anchoQ, altoQ){
-    const inv = loadInventory();
+  async function computeMatches(codigoQ, anchoQ, altoQ){
+    const inv = await loadInventory();
     return inv.map(t=>{
       const fits = t.ancho >= anchoQ && t.alto >= altoQ;
       const ns = nameScore(codigoQ, t);
@@ -663,14 +813,15 @@
 
   const usoConfirm = document.getElementById('usoConfirm');
 
-  function performSearch(){
+  async function performSearch(){
     const rawCodigo = document.getElementById('b-codigo').value;
     const codigoQ = extraerCodigo(rawCodigo);
     const anchoQ = parseFloat(document.getElementById('b-ancho').value);
     const altoQ = parseFloat(document.getElementById('b-alto').value);
     if(isNaN(anchoQ) || isNaN(altoQ)) return;
 
-    const matches = computeMatches(codigoQ, anchoQ, altoQ);
+    resultList.innerHTML = '<div class="empty-state">Buscando...</div>';
+    const matches = await computeMatches(codigoQ, anchoQ, altoQ);
     resultList.innerHTML = '';
 
     if(matches.length === 0){
@@ -690,7 +841,7 @@
       const useBtn = m.fits ? '<button class="use-btn" data-id="'+m.id+'">Usar</button>' : '';
       row.innerHTML =
         '<div class="result-code"><span class="rank-num">#'+(i+1)+'</span>'+m.codigo+'</div>' +
-        '<div class="result-name">'+escapeHtml(m.nombreTela||m.tela||'')+' <span class="unit">('+escapeHtml(m.codigoTela||'—')+')</span>' +
+        '<div class="result-name">'+escapeHtml(m.nombreTela||'')+' <span class="unit">('+escapeHtml(m.codigoTela||'—')+')</span>' +
           (label ? '<small>'+label+'</small>' : '') + '</div>' +
         '<div class="result-dims">'+fmtNum(m.ancho)+' x '+fmtNum(m.alto)+' mm · '+fmtNum(m.peso)+' kg</div>' +
         '<div class="result-dims">'+dimsInfo+'</div>' +
@@ -699,17 +850,23 @@
     });
 
     resultList.querySelectorAll('.use-btn').forEach(btn=>{
-      btn.addEventListener('click', function(){
+      btn.addEventListener('click', async function(){
         const id = btn.dataset.id;
-        const inv = loadInventory();
+        const inv = await loadInventory();
         const rec = inv.find(t=>t.id === id);
         if(!rec) return;
-        if(confirm('¿Usar la tela '+rec.codigo+' ('+(rec.nombreTela||rec.tela)+')? Se sacará del inventario y quedará libre esa ubicación.')){
-          saveInventory(inv.filter(t=>t.id !== id));
-          usoConfirm.innerHTML = 'Tela usada. Retírala de la ubicación <b>'+rec.codigo+'</b> — ese espacio ya quedó disponible.';
-          usoConfirm.classList.add('show');
-          setTimeout(()=> usoConfirm.classList.remove('show'), 6000);
-          performSearch();
+        if(confirm('¿Usar la tela '+rec.codigo+' ('+rec.nombreTela+')? Se sacará del inventario y quedará libre esa ubicación.')){
+          btn.disabled = true;
+          try{
+            await deleteRecord(id);
+            usoConfirm.innerHTML = 'Tela usada. Retírala de la ubicación <b>'+rec.codigo+'</b> — ese espacio ya quedó disponible.';
+            usoConfirm.classList.add('show');
+            setTimeout(()=> usoConfirm.classList.remove('show'), 6000);
+            performSearch();
+          }catch(err){
+            alert(err.message);
+            btn.disabled = false;
+          }
         }
       });
     });
@@ -724,13 +881,14 @@
   const invSearch = document.getElementById('inv-search');
   const invTableWrap = document.getElementById('invTableWrap');
 
-  function renderInventoryTable(){
+  async function renderInventoryTable(){
+    invTableWrap.innerHTML = '<div class="empty-state">Cargando inventario...</div>';
     const filter = (invSearch.value || '').toLowerCase().trim();
-    const inv = loadInventory().slice().sort((a,b)=> a.codigo.localeCompare(b.codigo, undefined, {numeric:true}));
+    const inv = (await loadInventory()).slice().sort((a,b)=> a.codigo.localeCompare(b.codigo, undefined, {numeric:true}));
     const filtered = inv.filter(t =>
       t.codigo.toLowerCase().includes(filter) ||
       (t.codigoTela||'').toLowerCase().includes(filter) ||
-      (t.nombreTela||t.tela||'').toLowerCase().includes(filter)
+      (t.nombreTela||'').toLowerCase().includes(filter)
     );
 
     if(inv.length === 0){
@@ -749,7 +907,7 @@
       html += '<tr>' +
         '<td class="code">'+t.codigo+'</td>' +
         '<td class="code">'+escapeHtml(t.codigoTela||'—')+'</td>' +
-        '<td>'+escapeHtml(t.nombreTela||t.tela||'')+'</td>' +
+        '<td>'+escapeHtml(t.nombreTela||'')+'</td>' +
         '<td>'+fmtNum(t.peso)+' kg</td>' +
         '<td>'+fmtNum(t.ancho)+' x '+fmtNum(t.alto)+' mm</td>' +
         '<td>'+fmtDate(t.fecha)+'</td>' +
@@ -761,27 +919,30 @@
     invTableWrap.innerHTML = html;
 
     invTableWrap.querySelectorAll('.del-btn').forEach(btn=>{
-      btn.addEventListener('click', function(){
+      btn.addEventListener('click', async function(){
         const id = btn.dataset.id;
-        const inv = loadInventory();
+        const inv = await loadInventory();
         const rec = inv.find(t=>t.id === id);
         if(!rec) return;
-        if(confirm('¿Eliminar el registro '+rec.codigo+' ('+(rec.nombreTela||rec.tela)+')? Esta acción no se puede deshacer.')){
-          saveInventory(inv.filter(t=>t.id !== id));
-          renderInventoryTable();
+        if(confirm('¿Eliminar el registro '+rec.codigo+' ('+rec.nombreTela+')? Esta acción no se puede deshacer.')){
+          btn.disabled = true;
+          try{
+            await deleteRecord(id);
+            renderInventoryTable();
+          }catch(err){
+            alert(err.message);
+            btn.disabled = false;
+          }
         }
       });
     });
   }
   invSearch.addEventListener('input', renderInventoryTable);
 
-  // ---------- Export / Import ----------
-  document.getElementById('btnExport').addEventListener('click', function(){
-    const data = {
-      inventory: loadInventory(),
-      counter: localStorage.getItem(COUNTER_KEY) || '0',
-      exportedAt: new Date().toISOString()
-    };
+  // ---------- Export / Import (respaldo manual adicional) ----------
+  document.getElementById('btnExport').addEventListener('click', async function(){
+    const inventory = await loadInventory();
+    const data = { inventory, exportedAt: new Date().toISOString() };
     const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -798,13 +959,21 @@
     const file = e.target.files[0];
     if(!file) return;
     const reader = new FileReader();
-    reader.onload = function(evt){
+    reader.onload = async function(evt){
       try{
         const data = JSON.parse(evt.target.result);
         if(!Array.isArray(data.inventory)) throw new Error('Formato inválido');
-        if(confirm('Esto reemplazará los '+loadInventory().length+' registros actuales por los '+data.inventory.length+' del archivo. ¿Continuar?')){
-          saveInventory(data.inventory);
-          if(data.counter) localStorage.setItem(COUNTER_KEY, String(data.counter));
+        if(confirm('Esto AGREGARÁ '+data.inventory.length+' registros del archivo a Supabase (no borra lo que ya existe). ¿Continuar?')){
+          for(const rec of data.inventory){
+            await sb.from(TABLE).insert({
+              codigo_ubicacion: rec.codigo,
+              codigo_tela: rec.codigoTela || null,
+              nombre_tela: rec.nombreTela || rec.tela || '',
+              peso: rec.peso, ancho: rec.ancho, alto: rec.alto,
+              notas: rec.notas || null,
+              fecha: rec.fecha || new Date().toISOString()
+            });
+          }
           renderInventoryTable();
           alert('Respaldo importado correctamente.');
         }
@@ -822,9 +991,6 @@
     div.textContent = str || '';
     return div.innerHTML;
   }
-
-  // Initial render
-  renderInventoryTable();
 })();
 </script>
 </body>
